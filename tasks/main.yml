@@ -1,0 +1,20 @@
+---
+  - include: install.yml
+
+  - name: check if ruby version is installed
+    become: yes
+    become_user: "{{ rbenv_user }}"
+    shell: "~/.rbenv/bin/rbenv versions | grep {{ rbenv_ruby_version }}"
+    register: rbenv_ruby_version_present
+    failed_when: rbenv_ruby_version_present.rc > 1
+
+  - name: install ruby
+    become: yes
+    become_user: "{{ rbenv_user }}"
+    shell: ~/.rbenv/bin/rbenv install {{ rbenv_ruby_version }}
+    when: rbenv_ruby_version_present.rc == 1
+
+  - name: add default version
+    become: yes
+    become_user: "{{ rbenv_user }}"
+    shell: "echo {{ rbenv_ruby_version }} > ~/.rbenv/version"

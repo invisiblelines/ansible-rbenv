@@ -1,0 +1,86 @@
+---
+  - name: install dependencies
+    tags:
+      - ruby
+      - dependencies
+    become: yes
+    apt: pkg={{ item }} state=installed update_cache=true
+    with_items:
+      - build-essential
+      - autoconf
+      - bison
+      - libffi-dev
+      - zlib1g-dev
+      - libssl-dev
+      - libreadline6-dev
+      - libyaml-dev
+      - libxml2-dev
+      - libxslt1-dev
+      - libcurl4-openssl-dev
+      - imagemagick
+      - libmagickcore-dev
+      - libmagickwand-dev
+      - libgmp-dev
+      - libncurses5-dev
+      - libgdbm3
+      - libgdbm-dev
+      - git
+
+  - name: add global rdoc options
+    become: yes
+    tags:
+      - ruby
+      - config
+    copy:
+      src: gemrc
+      dest: /etc/gemrc
+
+  - name: clone repo
+    become: yes
+    become_user: "{{ rbenv_user }}"
+    git:
+      repo=https://github.com/sstephenson/rbenv.git
+      dest="/home/{{ rbenv_user }}/.rbenv"
+      clone=yes
+      update=yes
+      version="v1.0.0"
+
+  - name: export PATH
+    become: yes
+    lineinfile:
+      dest=/home/{{ rbenv_user }}/.profile
+      line='export PATH="$HOME/.rbenv/bin:$PATH"'
+      regexp="rbenv/bin"
+      state=present
+      create=yes
+      owner="{{ rbenv_user }}"
+      group="{{ rbenv_user }}"
+
+  - name: add rbenv init
+    become: yes
+    lineinfile:
+      dest=/home/{{ rbenv_user }}/.profile
+      line='eval "$(rbenv init -)"'
+      regexp='rbenv init'
+      state=present
+      owner="{{ rbenv_user }}"
+      group="{{ rbenv_user }}"
+
+  - name: install rbenv plugins
+    become: yes
+    become_user: "{{ rbenv_user }}"
+    git:
+      repo={{item.url}}
+      dest="/home/{{ rbenv_user }}/.rbenv/plugins/{{ item.name }}"
+    with_items: rbenv_plugins
+
+  - name: add default-gems file
+    become: yes
+    lineinfile:
+      dest=/home/{{ rbenv_user }}/.rbenv/default-gems
+      create=yes
+      line={{ item }}
+      regexp={{ item }}
+      owner="{{ rbenv_user }}"
+      group="{{ rbenv_user }}"
+    with_items: rbenv_default_gems
